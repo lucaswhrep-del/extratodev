@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function importer() {
+      return request.auth != null && get(/databases/$(database)/documents/dev_importers/$(request.auth.uid)).data.enabled == true;
+    }
+    match /dev_importers/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+    match /dev_meta/active {
+      allow get: if true;
+      allow create, update: if importer()
+        && request.resource.data.keys().hasOnly(['version','chunks','count','filename','publishedAt'])
+        && request.resource.data.version is string
+        && request.resource.data.chunks is int && request.resource.data.chunks > 0 && request.resource.data.chunks <= 1000
+        && request.resource.data.count is int && request.resource.data.count > 0
+        && request.resource.data.publishedAt == request.time
+        && exists(/databases/$(database)/documents/dev_versions/$(request.resource.data.version));
+    }
+    match /dev_versions/{version} {
+      allow get: if importer();
+      allow create: if importer() && request.resource.data.createdBy == request.auth.uid;
+      match /chunks/{chunk} {
+        allow get: if importer() || get(/databases/$(database)/documents/dev_meta/active).data.version == version;
+        allow create: if importer()
+          && get(/databases/$(database)/documents/dev_versions/$(version)).data.createdBy == request.auth.uid
+          && request.resource.data.keys().hasOnly(['payload'])
+          && request.resource.data.payload is string && request.resource.data.payload.size() < 800000;
+      }
+    }
+  }
+}

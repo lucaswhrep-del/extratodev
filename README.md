@@ -32,4 +32,3 @@ Nenhuma planilha ou dado de cliente está embutido neste repositório. A primeir
 - https://firebase.google.com/docs/firestore/security/get-started
 - https://docs.sheetjs.com/docs/getting-started/installation/standalone/
 - https://docs.netlify.com/start/quickstarts/deploy-from-repository/
-
